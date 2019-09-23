@@ -32,11 +32,10 @@ user.set('collection', 'user');
 module.exports.user = mongoose.model('user', user);
 
 const complete_courses = new mongoose.Schema({
-    id: String,
-    user_id: String,
-    course_id: String,
-    lesson_id: String,
-    lecture_id: String,
+    user_id: Object,
+    course_id: Object,
+    lesson_id: Object,
+    lecture_id: Object,
 }, {
         timestamps: true
     });

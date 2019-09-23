@@ -263,31 +263,77 @@ exports.category = (req, res) => {
 exports.course_single = (req, res) => {
     Modal.co.aggregate([
         { "$lookup": { "from": "author", "localField": "authorid", "foreignField": "id", "as": "author" } },
-        { "$lookup": { "from": "lesson", "localField": "_id", "foreignField": "courseid", "as": "lesson", }, },
-        { "$lookup": { "from": "lecture", "localField": "lesson._id", "foreignField": "lessonid", "as": "lecture", } },
-        { "$lookup": { "from": "complete_courses", "localField": "_id", "foreignField": "course_id", "as": "complete_courses", } },
-        { $match: { "course_slug": ""+req.params.courseslug+""}},
-        ])
-        .then(Modal => {
-        var  com_count = 0;
-        Modal[0]['lesson'].forEach(function (value, no) {
-            Modal[0]['lesson'][no]['lecture'] = new Array();
-        });
-        Modal[0]['lecture'].forEach(function (value,no) {
-            $lec = Modal[0]['lecture'];
-            $com = Modal[0]['complete_courses'];
-            $lesson_position = Modal[0]['lesson'].map(e => ""+e._id+"").indexOf(""+$lec[no]['lessonid']+"");
-            if ($com.find(le => le.lesson_id == $lec[no]['lessonid']) && $com.find(lec => lec.lecture_id == $lec[no]['_id']) && $com.find(u => u.user_id == '3')){
-                Modal[0]['lecture'][no]['c'] = 'complete';
-                com_count++;
-            }else{
-                Modal[0]['lecture'][no]['c'] = 'incomplete';
+        {
+            "$lookup": {
+                "from": "lesson",
+                "let": { "uuid": "$_id" },
+                "pipeline": [
+                    { "$match": { "$expr": { "$eq": ["$$uuid", "$courseid"] } } },
+                    { "$sort": { "number": 1 } }
+                ],
+                "as": "lesson"
             }
-            Modal[0]['lesson'][$lesson_position]['lecture'].push(value);
-        });
-        Modal[0]['count'] = com_count;
-        delete Modal[0]['lecture'];
-        delete Modal[0]['complete_courses'];
+        },
+        {
+            "$lookup": {
+                "from": "lecture",
+                "let": { "uuid": "$_id" },
+                "pipeline": [
+                    { "$match": { "$expr": { "$eq": ["$$uuid", "$courseid"] } } },
+                    { "$sort": { "id": 1 } }
+                ],
+                "as": "lecture"
+            }
+        },
+        {
+            "$lookup": {
+                "from": "complete_courses",
+                let: {
+                    userid: ObjectId(req.body.userid),
+                    course_id: "$_id",
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ['$user_id', '$$userid'] },
+                                    { $eq: ['$course_id', "$$course_id"] },
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "as": "complete_courses",
+            },
+        },
+        { $match: { "course_slug": req.body.course } },
+    ])
+        .collation({ locale: "en_US", numericOrdering: true })
+        .then(Modal => {
+            var com_count = 0;
+            $pre_length = "";
+            $next_length = "";
+            var total_lecture = 0;
+            Modal[0]['lesson'].forEach(function (val, n) {
+                Modal[0]['lesson'][n]['lecture'] = new Array();
+            });
+            Modal[0]['lecture'].forEach(function (value, no) {
+                total_lecture++;
+                $lec = Modal[0]['lecture'];
+                $com = Modal[0]['complete_courses'];
+                $lesson_position = Modal[0]['lesson'].map(e => "" + e._id + "").indexOf("" + $lec[no]['lessonid'] + "");
+                if ($com.find(le => JSON.stringify(le.lecture_id) === JSON.stringify(value['_id']))) {
+                    Modal[0]['lecture'][no]['c'] = 'complete';
+                    com_count++;
+                } else {
+                    Modal[0]['lecture'][no]['c'] = 'incomplete';
+                }
+                Modal[0]['lesson'][$lesson_position]['lecture'].push(value);
+            });
+            Modal[0]['count'] = Math.round(com_count * 100 / total_lecture);
+            delete Modal[0]['lecture'];
+            delete Modal[0]['complete_courses'];
             return res.status(200).send({
                 message: "successfully get",
                 data: Modal
@@ -297,32 +343,47 @@ exports.course_single = (req, res) => {
                 message: "Error retrieving Modal with id " + err
             });
         });
+        
 };
 
 // Create complete course
 exports.complete_courses = (req, res) => {
     if (req.body.course && req.body.lesson && req.body.userid && req.body.lecture) {
-        const complete_courses = new Modal.complete_courses({
-            user_id: req.body.course,
-            course_id: req.body.lesson,
-            lesson_id: req.body.userid,
-            lecture_id: req.body.lecture
-        });
-        // Save Modal in the database
-        complete_courses.save()
-            .then(data => {
-                res.send(data);
-            }).catch(err => {
-                res.status(500).send({
-                    message: err.message || "Some error occurred while creating the Modal."
+        Modal.complete_courses.find({
+            user_id: ObjectId(req.body.userid),
+            course_id: ObjectId(req.body.course),
+            lesson_id: ObjectId(req.body.lesson),
+            lecture_id: ObjectId(req.body.lecture)
+        }).then(check_data => {
+            if (check_data.length == 0){
+                const complete_courses = new Modal.complete_courses({
+                    user_id: ObjectId(req.body.userid),
+                    course_id: ObjectId(req.body.course),
+                    lesson_id: ObjectId(req.body.lesson),
+                    lecture_id: ObjectId(req.body.lecture)
                 });
-            });
+                // Save Modal in the database
+                complete_courses.save()
+                    .then(data => {
+                        res.status(200).send({
+                            message: "Successfully completed.."
+                        });
+                    }).catch(err => {
+                        res.status(200).send({
+                            message: err.message || "Some error occurred while creating the Modal."
+                        });
+                    });
+            }else{
+                res.status(200).send({
+                    message: "Successfully completed.."
+                });
+            }
+        });
     } else {
-        return res.status(400).send({
+        return res.status(200).send({
             message: "something wrong please try again"
         });
     }
-    return;
 };
 
 
@@ -420,16 +481,16 @@ exports.complete_course_detail = (req, res) => {
             "$lookup": {
                 "from": "complete_courses",
                 let: {
-                    course_id: "$id",
-                    user_id: req.body.post_data.id,
+                    userid: ObjectId(req.body.post_data.id),
+                    course_id: "$_id",
                 },
                 pipeline: [
                     {
                         $match: {
                             $expr: {
                                 $and: [
-                                    { $eq: ['$course_id', '$$course_id'] },
-                                    { $eq: ['$user_id', req.body.post_data.id] },
+                                    { $eq: ['$user_id', '$$userid'] },
+                                    { $eq: ['$course_id', "$$course_id"] },
                                 ]
                             }
                         }
@@ -437,7 +498,6 @@ exports.complete_course_detail = (req, res) => {
                 ],
                 "as": "complete_courses",
             },
-            
         },
         {
             $project: {
@@ -477,8 +537,17 @@ exports.complete_course_detail = (req, res) => {
 exports.lecture_single = (req, res) => {
     Modal.co.aggregate([
         { "$lookup": { "from": "author", "localField": "authorid", "foreignField": "id", "as": "author" } },
-        { "$lookup": { "from": "lesson", "localField": "_id", "foreignField": "courseid", "as": "lesson", }, },
-        // { "$lookup": { "from": "lecture", "localField": "lesson._id", "foreignField": "lessonid", "as": "lecture", } },
+        {
+            "$lookup": {
+                "from": "lesson",
+                "let": { "uuid": "$_id" },
+                "pipeline": [
+                    { "$match": { "$expr": { "$eq": ["$$uuid", "$courseid"] } } },
+                    { "$sort": { "number": 1 } }
+                ],
+                "as": "lesson"
+            }
+        },
         {
             "$lookup": {
                 "from": "lecture",
@@ -490,12 +559,34 @@ exports.lecture_single = (req, res) => {
                 "as": "lecture"
             }
         },
-        { "$lookup": { "from": "complete_courses", "localField": "_id", "foreignField": "course_id", "as": "complete_courses", } },
+        {
+            "$lookup": {
+                "from": "complete_courses",
+                let: {
+                    userid: ObjectId(req.body.userid),
+                    course_id: "$_id",
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ['$user_id', '$$userid'] },
+                                    { $eq: ['$course_id', "$$course_id"] },
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "as": "complete_courses",
+            },
+        },
+        // { "$lookup": { "from": "complete_courses", "localField": "lecture._id", "foreignField": "lecture_id", "as": "complete_courses", } },
         {
             "$lookup": {
                 "from": "lesson",
                 let: {
-                    lesson_slug: req.params.lessonslug,
+                    lessonid: req.body.lesson,
                     courseid: '$_id',
                 },
                 pipeline: [
@@ -503,7 +594,7 @@ exports.lecture_single = (req, res) => {
                         $match: {
                             $expr: {
                                 $and: [
-                                    { $eq: ['$lesson_slug', '$$lesson_slug'] },
+                                    { $eq: ['$lesson_slug', '$$lessonid'] },
                                     { $eq: ['$courseid', '$$courseid'] },
                                 ]
                             }
@@ -519,7 +610,7 @@ exports.lecture_single = (req, res) => {
             "$lookup": {
                 "from": "lecture",
                 let: {
-                    lecture_slug: req.params.lectureslug,
+                    lectureid: req.body.lecture,
                     lessonid: "$singlelesson._id",
                     courseid: '$_id',
                 },
@@ -530,7 +621,7 @@ exports.lecture_single = (req, res) => {
                                 $and: [
                                     { $eq: ['$courseid', '$$courseid'] },
                                     { $eq: ['$lessonid', "$$lessonid" ] },
-                                    { $eq: ['$lecture_slug', '$$lecture_slug'] },
+                                    { $eq: ['$lecture_slug', '$$lectureid'] },
                                 ]
                             }
                         }
@@ -538,25 +629,27 @@ exports.lecture_single = (req, res) => {
                 ],
                 "as": "single_lecture",
             },
-            
         },
         { "$unwind": "$single_lecture" },
         { "$lookup": { "from": "download_data", "localField": "single_lecture._id", "foreignField": "lectureid", "as": "download_data", } },
-        { $match: { "course_slug": "" + req.params.courseslug + "" } },
+        { $match: { "course_slug" :  req.body.course } },
         // { $sort: { "lecture.number": -1 } },
          ])
+        .collation({ locale: "en_US", numericOrdering: true })
         .then(Modal => {
-            // res.send(Modal);
-            // return;
         var  com_count = 0;
-        Modal[0]['lesson'].forEach(function (value, no) {
-            Modal[0]['lesson'][no]['lecture'] = new Array();
+        $pre_length = "";
+        $next_length = "";
+        var total_lecture = 0;
+        Modal[0]['lesson'].forEach(function (val, n) {
+            Modal[0]['lesson'][n]['lecture'] = new Array();
         });
         Modal[0]['lecture'].forEach(function (value,no) {
+            total_lecture++;
             $lec = Modal[0]['lecture'];
             $com = Modal[0]['complete_courses'];
             $lesson_position = Modal[0]['lesson'].map(e => ""+e._id+"").indexOf(""+$lec[no]['lessonid']+"");
-            if ($com.find(le => le.lesson_id == $lec[no]['lessonid']) && $com.find(lec => lec.lecture_id == $lec[no]['_id']) && $com.find(u => u.user_id == '3')){
+            if ($com.find(le => JSON.stringify(le.lecture_id) === JSON.stringify(value['_id']))){
                 Modal[0]['lecture'][no]['c'] = 'complete';
                 com_count++;
             }else{
@@ -564,9 +657,33 @@ exports.lecture_single = (req, res) => {
             }
             Modal[0]['lesson'][$lesson_position]['lecture'].push(value);
         });
-        Modal[0]['count'] = com_count;
+            $next_pre = "";
+            $lesson_index = "";
+                Modal[0]['lesson'].map(function (e, n) {e.lecture.map(
+                    function (o,no) { 
+                        if (o.lecture_slug === req.body.lecture && e.lesson_slug === req.body.lesson){
+                            $next_pre = no;
+                            $lesson_index = n;
+                        }
+                    }) });
+            if (Modal[0]['lesson'][$lesson_index]['lecture'][$next_pre-1]) {
+                Modal[0]['pre'] = '/course/' + req.body.course + '/lesson/' + Modal[0]['lesson'][$lesson_index]['lesson_slug'] + '/lecture/' + Modal[0]['lesson'][$lesson_index]['lecture'][$next_pre - 1]['lecture_slug'] + '';
+            } else {
+                if (Modal[0]['lesson'][$lesson_index - 1]) {
+                    $lec_l = Modal[0]['lesson'][$lesson_index - 1]['lecture'].length - 1
+                    Modal[0]['pre'] = '/course/' + req.body.course + '/lesson/' + Modal[0]['lesson'][$lesson_index - 1]['lesson_slug'] + '/lecture/' + Modal[0]['lesson'][$lesson_index - 1]['lecture'][$lec_l]['lecture_slug'] + '';
+                }
+            }
+            if (Modal[0]['lesson'][$lesson_index]['lecture'][$next_pre+1]) {
+                Modal[0]['next'] = '/course/' + req.body.course + '/lesson/' + Modal[0]['lesson'][$lesson_index]['lesson_slug'] + '/lecture/' + Modal[0]['lesson'][$lesson_index]['lecture'][$next_pre+1]['lecture_slug'] + '';
+            } else {
+                if (Modal[0]['lesson'][$lesson_index + 1]) {
+                    Modal[0]['next'] = '/course/' + req.body.course + '/lesson/' + Modal[0]['lesson'][$lesson_index + 1]['lesson_slug'] + '/lecture/' + Modal[0]['lesson'][$lesson_index + 1]['lecture'][0]['lecture_slug'] + '';
+                }
+            }
+        Modal[0]['count'] = Math.round(com_count * 100 / total_lecture);
         delete Modal[0]['lecture'];
-        delete Modal[0]['complete_courses'];
+        // delete Modal[0]['complete_courses'];
         delete Modal[0]['singlelesson'];
             return res.status(200).send({
                 message: "successfully get",

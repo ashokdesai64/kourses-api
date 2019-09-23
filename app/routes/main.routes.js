@@ -20,10 +20,10 @@ module.exports = (app) => {
     //login
     app.post('/login', controller.login);
     app.post('/course_detail', controller.course_detail);
-    app.get('/course_single/:courseslug', controller.course_single);
-    app.get('/lecture_single/:courseslug/:lessonslug/:lectureslug', controller.lecture_single);
+    app.post('/course_single', controller.course_single);
+    app.post('/lecture_single', controller.lecture_single);
     app.post('/category', controller.category);
-    app.post('/complete_courses', controller.category);
+    app.post('/complete_courses', controller.complete_courses);
     app.post('/get_author', controller.get_author);
     app.post('/get_category', controller.get_category);
     app.post('/complete_course_detail', controller.complete_course_detail);
