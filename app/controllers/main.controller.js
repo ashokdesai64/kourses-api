@@ -53,6 +53,54 @@ exports.findAll = (req, res) => {
         });
 };
 
+
+// Find a single Modal with a ModalId
+exports.sociallogin = (req, res) => {
+    console.log(req.body.email);
+    if (!req.body.email){
+        return res.status(200).send({
+            status: "error",
+            message: "Email not found",
+        });
+    }
+    Modal.user.find({ email: req.body.email })
+        .then(value => {
+            console.log(value.length);
+            if (value.length == 0) {
+                const insert_user = new Modal.user({
+                    username: req.body.username,
+                    email: req.body.email,
+                    type: "1",
+                    status: "1",
+                    login_type : req.body.type,
+                    date_created: ts_hms,
+                    date_updated: ts_hms,
+                });
+                insert_user.save()
+                    .then(data => {
+                        res.status(200).send({
+                            data: data
+                        });
+                    }).catch(err => {
+                        res.status(200).send({
+                            message: "Some error occurred while creating the Modal."
+                        });
+                    });
+            }else{
+                return res.status(200).send({
+                    status: "success",
+                    data: value,
+                    message: "Modal not found with id " + req.params.ModalId
+                });
+            }
+        }).catch(err => {
+            return res.status(200).send({
+                status: "error",
+                message: "Error retrieving Modal with id " + req.params.ModalId
+            });
+        });
+};
+
 // Find a single Modal with a ModalId
 exports.findOne = (req, res) => {
     let table = Modal['' + req['params']['db'] + ''];
