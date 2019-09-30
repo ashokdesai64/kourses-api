@@ -89,7 +89,7 @@ exports.sociallogin = (req, res) => {
             }else{
                 return res.status(200).send({
                     status: "success",
-                    data: value,
+                    data: value[0],
                     message: "Modal not found with id " + req.params.ModalId
                 });
             }
