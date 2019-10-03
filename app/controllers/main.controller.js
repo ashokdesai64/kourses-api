@@ -79,7 +79,7 @@ exports.sociallogin = (req, res) => {
                 insert_user.save()
                     .then(data => {
                         res.status(200).send({
-                            data: data
+                            data: data[0]
                         });
                     }).catch(err => {
                         res.status(200).send({
@@ -742,4 +742,26 @@ exports.lecture_single = (req, res) => {
                 message: "Error retrieving Modal with id " + err
             });
         });
+};
+
+exports.send_mail = (req, res) => {
+    var nodemailer = require('nodemailer');
+    let transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            type: 'OAuth2',
+            user: 'user@example.com',
+            accessToken: 'ya29.Xx_XX0xxxxx-xX0X0XxXXxXxXXXxX0x'
+        }
+    });
+    console.log(nodemailer);
+    transporter.sendMail({
+        from: "Fred Foo ✔ <foo@blurdybloop.com>", // sender address
+        to: "******@gmail.com", // list of receivers
+        subject: "Hello ✔", // Subject line
+        text: "Hello world ✔", // plaintext body
+        html: "<b>Hello world ✔</b>" // html body
+    }, console.error);
 };
