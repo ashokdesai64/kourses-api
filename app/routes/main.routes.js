@@ -28,7 +28,7 @@ module.exports = (app) => {
     app.post('/get_category', controller.get_category);
     app.post('/complete_course_detail', controller.complete_course_detail);
     app.post('/sociallogin', controller.sociallogin);
-    app.post('/send_mail', controller.send_mail);
+    app.post('/mail_send', controller.mail_send);
 
     // admin site
     app.post('/uploadjavatpoint', admin_controller.add_course);

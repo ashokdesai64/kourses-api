@@ -744,24 +744,41 @@ exports.lecture_single = (req, res) => {
         });
 };
 
-exports.send_mail = (req, res) => {
+exports.mail_send = (req, res) => {
+    return;
     var nodemailer = require('nodemailer');
-    let transporter = nodemailer.createTransport({
+    var transporter = nodemailer.createTransport({
+        // service: "gmail",
+        // auth: {
+        //     user: "jaydip.qsek@gmail.com",
+        //     pass: "Jaydip@605"
+        // }
         host: 'smtp.gmail.com',
         port: 465,
         secure: true,
         auth: {
             type: 'OAuth2',
-            user: 'user@example.com',
-            accessToken: 'ya29.Xx_XX0xxxxx-xX0X0XxXXxXxXXXxX0x'
+            clientId: '338442871337-fh49fjaav2c8112tdtrsg8tnaohpktoc.apps.googleusercontent.com',
+            clientSecret: 'sQEQ8b09R9js9sWwkOwBKbZf'
         }
     });
-    console.log(nodemailer);
-    transporter.sendMail({
-        from: "Fred Foo ✔ <foo@blurdybloop.com>", // sender address
-        to: "******@gmail.com", // list of receivers
-        subject: "Hello ✔", // Subject line
-        text: "Hello world ✔", // plaintext body
-        html: "<b>Hello world ✔</b>" // html body
-    }, console.error);
+    const mailOptions = {
+        from: 'james.patel710@gmail.com',
+        to: 'jaydip.qsek@gmail.com',
+        subject: 'Test Subject',
+        text: 'This is a test',
+        html: Modal.email_html['html'],
+        auth: {
+            user: 'james.patel710@gmail.com',
+            refreshToken: '1/lYKLXNBJYtc-EO6VdhvWm6UbTdl6zeeIk4MZ2yPCUJM',
+            accessToken: 'ya29.Il-UByvAvu3HXvht-mjcPq1eMs8ZUmDU7UabO-1Mq6eFo4KPoEyXtGSrg5R3y9lik148eNfwlnM8pKyccTxobSwoLHmDpgDCEETdcc5LApGKElzsrk1YnbBrVUbDJn2PwQ'
+        }
+    }
+
+    transporter.sendMail(mailOptions, function (err, info) {
+        if (err)
+            console.log(err)
+        else
+            console.log(info);
+    });
 };
