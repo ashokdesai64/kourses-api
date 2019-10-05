@@ -782,3 +782,32 @@ exports.mail_send = (req, res) => {
             console.log(info);
     });
 };
+
+
+exports.check_user = (req, res) => {
+    if (!req.body.email) {
+        return res.status(200).send({
+            status: "error",
+            message: "Email not found",
+        });
+    }
+    Modal.user.find({ email: req.body.email })
+        .then(value => {
+            if (value.length != 0) {
+                return res.status(200).send({
+                    status: "success",
+                    message: "User founded",
+                });
+            } else {
+                return res.status(200).send({
+                    status: "error",
+                    message: "User not found",
+                });
+            }
+        }).catch(err => {
+            return res.status(200).send({
+                status: "error",
+                message: "Error retrieving Modal with id " + req.params.ModalId
+            });
+        });
+};
