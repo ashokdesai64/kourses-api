@@ -28,8 +28,9 @@ module.exports = (app) => {
     app.post('/get_category', controller.get_category);
     app.post('/complete_course_detail', controller.complete_course_detail);
     app.post('/sociallogin', controller.sociallogin);
-    app.post('/mail_send', controller.mail_send);
-    app.post('/check_user', controller.check_user);
+    // app.post('/mail_send', controller.mail_send);
+    app.post('/forget_password_fun', controller.forget_password_fun);
+    app.post('/check_otp', controller.check_otp);
 
 
     // admin site

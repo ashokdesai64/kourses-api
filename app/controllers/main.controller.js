@@ -2,6 +2,8 @@ const Modal = require('../models/common.model.js');
 var crypto = require('crypto');
 var ts_hms = new Date();
 var ObjectId = require('mongodb').ObjectID;
+var nodemailer = require('nodemailer');
+var localStorage = require('localStorage')
 
 // Create and Save a new Modal
 exports.create = (req, res) => {
@@ -744,47 +746,7 @@ exports.lecture_single = (req, res) => {
         });
 };
 
-exports.mail_send = (req, res) => {
-    return;
-    var nodemailer = require('nodemailer');
-    var transporter = nodemailer.createTransport({
-        // service: "gmail",
-        // auth: {
-        //     user: "jaydip.qsek@gmail.com",
-        //     pass: "Jaydip@605"
-        // }
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-            type: 'OAuth2',
-            clientId: '338442871337-fh49fjaav2c8112tdtrsg8tnaohpktoc.apps.googleusercontent.com',
-            clientSecret: 'sQEQ8b09R9js9sWwkOwBKbZf'
-        }
-    });
-    const mailOptions = {
-        from: 'james.patel710@gmail.com',
-        to: 'jaydip.qsek@gmail.com',
-        subject: 'Test Subject',
-        text: 'This is a test',
-        html: Modal.email_html['html'],
-        auth: {
-            user: 'james.patel710@gmail.com',
-            refreshToken: '1/lYKLXNBJYtc-EO6VdhvWm6UbTdl6zeeIk4MZ2yPCUJM',
-            accessToken: 'ya29.Il-UByvAvu3HXvht-mjcPq1eMs8ZUmDU7UabO-1Mq6eFo4KPoEyXtGSrg5R3y9lik148eNfwlnM8pKyccTxobSwoLHmDpgDCEETdcc5LApGKElzsrk1YnbBrVUbDJn2PwQ'
-        }
-    }
-
-    transporter.sendMail(mailOptions, function (err, info) {
-        if (err)
-            console.log(err)
-        else
-            console.log(info);
-    });
-};
-
-
-exports.check_user = (req, res) => {
+exports.forget_password_fun = (req, res) => {
     if (!req.body.email) {
         return res.status(200).send({
             status: "error",
@@ -794,9 +756,32 @@ exports.check_user = (req, res) => {
     Modal.user.find({ email: req.body.email })
         .then(value => {
             if (value.length != 0) {
-                return res.status(200).send({
-                    status: "success",
-                    message: "User founded",
+                var transporter = nodemailer.createTransport({
+                    service: "gmail",
+                    auth: {
+                        user: "jaydip.qsek@gmail.com",
+                        pass: "Jaydip@605"
+                    }
+                });
+                const mailOptions = {
+                    from: 'Kourses <admin@gmail.com>',
+                    to: req.body.email,
+                    subject: 'Forget Password',
+                    html: Modal.email_html['html'],
+                }
+                transporter.sendMail(mailOptions, function (err, info) {
+                    if (err) {
+                        return res.status(200).send({
+                            status: "error",
+                            message: "something wrong.",
+                        });
+                    } else {
+                        localStorage.setItem('user_otp', Modal.email_html['code']);
+                        return res.status(200).send({
+                            status: "success",
+                            message: "User founded",
+                        });
+                    }
                 });
             } else {
                 return res.status(200).send({
@@ -811,3 +796,67 @@ exports.check_user = (req, res) => {
             });
         });
 };
+
+exports.check_otp = (req, res) => {
+    myValue = localStorage.getItem('user_otp');
+    if (!req.body.otp) {
+        return res.status(200).send({
+            status: "error",
+            message: "otp not found",
+        });
+    } else if (req.body.otp == myValue){
+        return res.status(200).send({
+            status: "success",
+            message: "OTP matched."
+        });
+    }else{
+        return res.status(200).send({
+            status: "error",
+            message: "OTP not matched."
+        });
+    }
+   
+};
+
+// exports.mail_send = (req, res) => {
+//     var transporter = nodemailer.createTransport({
+//         service: "gmail",
+//         auth: {
+//             user: "jaydip.qsek@gmail.com",
+//             pass: "Jaydip@605"
+//         }
+//         // host: 'smtp.gmail.com',
+//         // port: 465,
+//         // secure: true,
+//         // auth: {
+//         //     type: 'OAuth2',
+//         //     clientId: '338442871337-fh49fjaav2c8112tdtrsg8tnaohpktoc.apps.googleusercontent.com',
+//         //     clientSecret: 'sQEQ8b09R9js9sWwkOwBKbZf'
+//         // }
+//     });
+//     const mailOptions = {
+//         cc: [
+//             'foobar@example.com',
+//             '"Ноде Майлер" <bar@example.com>'
+//         ],
+//         from: 'Fred Foo 👥 <foo@blurdybloop.com>',
+//         to: 'james.patel710@gmail.com',
+//         subject: 'Test Subject',
+//         text: 'This is a test',
+//         html: Modal.email_html['html'],
+//         // auth: {
+//         //     user: 'james.patel710@gmail.com',
+//         //     refreshToken: '1/lYKLXNBJYtc-EO6VdhvWm6UbTdl6zeeIk4MZ2yPCUJM',
+//         //     accessToken: 'ya29.Il-UByvAvu3HXvht-mjcPq1eMs8ZUmDU7UabO-1Mq6eFo4KPoEyXtGSrg5R3y9lik148eNfwlnM8pKyccTxobSwoLHmDpgDCEETdcc5LApGKElzsrk1YnbBrVUbDJn2PwQ'
+//         // }
+//     }
+
+//     transporter.sendMail(mailOptions, function (err, info) {
+//         if (err) {
+//             console.log(err)
+//         } else {
+//             // localStorage.setItem(JSON.stringify('user_otp'), JSON.stringify(Modal.email_html['otp']));
+//             console.log(info);
+//         }
+//     });
+// };
