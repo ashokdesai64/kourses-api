@@ -13,24 +13,41 @@ exports.create = (req, res) => {
         });
     }
     if (req.body.password && req.body.username && req.body.email){
-        const insert_user = new Modal.user({
-            username: req.body.username,
-            email: req.body.email,
-            password: crypto.createHash('md5').update(req.body.password).digest("hex"),
-            login_type: 'web',
-            type: '1',
-            status: '1',
-            date_created: ts_hms,
-            date_updated: ts_hms,
-        });
-        // Save Modal in the database
-        insert_user.save()
-            .then(data => {
-                res.status(200).send({
-                    data:data
-                });
+        Modal.user.find({ email: req.body.email })
+            .then(value => {
+                if (value.length == 0) {
+                    const insert_user = new Modal.user({
+                        username: req.body.username,
+                        email: req.body.email,
+                        password: crypto.createHash('md5').update(req.body.password).digest("hex"),
+                        login_type: 'web',
+                        type: '1',
+                        status: '1',
+                        date_created: ts_hms,
+                        date_updated: ts_hms,
+                    });
+                    insert_user.save()
+                    .then(data => {
+                        res.status(200).send({
+                            status: 'success',
+                            message: "successfully registed.",
+                            // data:data
+                        });
+                    }).catch(err => {
+                        res.status(200).send({
+                            status: 'error',
+                            message: "something wrong."
+                        });
+                    });
+                }else{
+                    res.status(200).send({
+                        status: 'error',
+                        message: "email already used."
+                    });
+                }
             }).catch(err => {
                 res.status(200).send({
+                    status: "error",
                     message: "Some error occurred while creating the Modal."
                 });
             });
@@ -41,20 +58,6 @@ exports.create = (req, res) => {
     }
     return;
 };
-
-// Retrieve and return all Modals from the database.
-exports.findAll = (req, res) => {
-    let table = Modal[''+req['params']['db']+''];
-    table.find()
-        .then(data => {
-            res.send(data);
-        }).catch(err => {
-            res.status(500).send({
-                message: err.message || "Some error occurred while retrieving Modals."
-            });
-        });
-};
-
 
 // Find a single Modal with a ModalId
 exports.sociallogin = (req, res) => {
@@ -80,6 +83,10 @@ exports.sociallogin = (req, res) => {
                 });
                 insert_user.save()
                     .then(data => {
+                        delete data[0]['password'];
+                        delete data[0]['login_type'];
+                        delete data[0]['type'];
+                        delete data[0]['status'];
                         res.status(200).send({
                             data: data[0]
                         });
@@ -89,6 +96,10 @@ exports.sociallogin = (req, res) => {
                         });
                     });
             }else{
+                delete value[0]['password'];
+                delete value[0]['login_type'];
+                delete value[0]['type'];
+                delete value[0]['status'];
                 return res.status(200).send({
                     status: "success",
                     data: value[0],
@@ -99,84 +110,6 @@ exports.sociallogin = (req, res) => {
             return res.status(200).send({
                 status: "error",
                 message: "Error retrieving Modal with id " + req.params.ModalId
-            });
-        });
-};
-
-// Find a single Modal with a ModalId
-exports.findOne = (req, res) => {
-    let table = Modal['' + req['params']['db'] + ''];
-    table.findById(req.params.ModalId)
-        .then(Modal => {
-            if (!Modal) {
-                return res.status(404).send({
-                    message: "Modal not found with id " + req.params.ModalId
-                });
-            }
-            res.send(Modal);
-        }).catch(err => {
-            if (err.kind === 'ObjectId') {
-                return res.status(404).send({
-                    message: "Modal not found with id " + req.params.ModalId
-                });
-            }
-            return res.status(500).send({
-                message: "Error retrieving Modal with id " + req.params.ModalId
-            });
-        });
-};
-
-// Update a Modal identified by the ModalId in the request
-exports.update = (req, res) => {
-    // Validate Request
-    if (!req.body.content) {
-        return res.status(400).send({
-            message: "Modal content can not be empty"
-        });
-    }
-
-    // Find Modal and update it with the request body
-    Modal.findByIdAndUpdate(req.params.ModalId, {
-        title: req.body.title || "Untitled Modal",
-        content: req.body.content
-    }, { new: true })
-        .then(Modal => {
-            if (!Modal) {
-                return res.status(404).send({
-                    message: "Modal not found with id " + req.params.ModalId
-                });
-            }
-            res.send(Modal);
-        }).catch(err => {
-            if (err.kind === 'ObjectId') {
-                return res.status(404).send({
-                    message: "Modal not found with id " + req.params.ModalId
-                });
-            }
-            return res.status(500).send({
-                message: "Error updating Modal with id " + req.params.ModalId
-            });
-        });
-};
-
-// Delete a Modal with the specified ModalId in the request
-exports.delete = (req, res) => {
-    Modal.findByIdAndRemove(req.params.ModalId)
-        .then(Modal => {
-            if (!Modal) {
-                return res.status(404).send({
-                    message: "Modal not found with id " + req.params.ModalId
-                });
-            }
-            res.send({ message: "Modal deleted successfully!" });
-        }).catch(err => {
-            if (err.kind === 'ObjectId' || err.name === 'NotFound') {
-                return res.status(404).send({
-                    message: "Modal not found with id " + req.params.ModalId
-                });
-            }
-            return res.status(500).send({
-                message: "Could not delete Modal with id " + req.params.ModalId
             });
         });
 };
@@ -195,25 +128,29 @@ exports.login = (req, res) => {
         .then(Modal => {
             if (Modal.length < 1) {
                 return res.status(200).send({
+                    status: "error",
                     message: "user not fount."
                 });
             }
             if (Modal.status = 0) {
                 return res.status(200).send({
-                    message: "Your account not active."
+                    status: "error",
+                    message: "your account not active."
                 });
             }
+            delete Modal[0]['password'];
+            delete Modal[0]['login_type'];
+            delete Modal[0]['type'];
+            delete Modal[0]['status'];
             return res.status(200).send({
-                data: Modal[0]
+                data: Modal[0],
+                status: 'success',
+                msg: 'successfully login.'
             });
         }).catch(err => {
-            if (err.kind === 'ObjectId') {
-                return res.status(200).send({
-                    message: "Modal not found with id " + req.params.ModalId
-                });
-            }
             return res.status(200).send({
-                message: "Error retrieving Modal with id " + req.params.ModalId
+                status: "error",
+                message: "something wrong please try again."
             });
         });
 };
@@ -260,8 +197,8 @@ exports.course_detail = (req, res) => {
                 subtitle:"$subtitle",
                 sort_description:"$sort_description",
                 description:"$description",
-                l_c: { $size: "$lesson" },
-                L_c: { $size: "$lecture" },
+                lesson_count: { $size: "$lesson" },
+                lecture_count: { $size: "$lecture" },
             }
         }
         // { $addFields: { "commentsCount": { $count: "$lesson" } } },
@@ -269,12 +206,15 @@ exports.course_detail = (req, res) => {
     ])
     .then(Modal => {
         return res.status(200).send({
+            status: "success",
             message: "successfully get",
             data: Modal,
         }); 
     }).catch(err => {
-        return res.status(500).send({
-            message: "Error retrieving Modal with id " + req.params.ModalId
+        return res.status(200).send({
+            status: "error",
+            message: "something wrong get course data.",
+            data: Modal,
         }); 
     });
 };
@@ -361,6 +301,12 @@ exports.course_single = (req, res) => {
     ])
         .collation({ locale: "en_US", numericOrdering: true })
         .then(Modal => {
+            delete Modal[0]['author'][0]['github'];
+            delete Modal[0]['author'][0]['linkedin'];
+            delete Modal[0]['author'][0]['twitter'];
+            delete Modal[0]['author'][0]['password'];
+            delete Modal[0]['author'][0]['status'];
+            delete Modal[0]['author'][0]['is_deleted'];
             var com_count = 0;
             $pre_length = "";
             $next_length = "";
@@ -385,12 +331,14 @@ exports.course_single = (req, res) => {
             delete Modal[0]['lecture'];
             delete Modal[0]['complete_courses'];
             return res.status(200).send({
-                message: "successfully get",
+                message: "successfully get.",
+                status: "success",
                 data: Modal
             });
         }).catch(err => {
-            return res.status(500).send({
-                message: "Error retrieving Modal with id " + err
+            return res.status(200).send({
+                message: "something wrong get data.",
+                status: "error",
             });
         });
         
@@ -416,26 +364,29 @@ exports.complete_courses = (req, res) => {
                 complete_courses.save()
                     .then(data => {
                         res.status(200).send({
+                            status: "success",
                             message: "Successfully completed.."
                         });
                     }).catch(err => {
                         res.status(200).send({
-                            message: err.message || "Some error occurred while creating the Modal."
+                            status: "error",
+                            message: "something wrong please try agian"
                         });
                     });
             }else{
                 res.status(200).send({
+                    status: "success",
                     message: "Successfully completed.."
                 });
             }
         });
     } else {
         return res.status(200).send({
+            status: "error",
             message: "something wrong please try again"
         });
     }
 };
-
 
 exports.get_author = (req, res) => {
     Modal.author.aggregate([
@@ -457,12 +408,14 @@ exports.get_author = (req, res) => {
     ])
         .then(data => {
             res.status(200).send({
-                message: "success fully get author",
+                status: "success",
+                message: "success fully get author.",
                 data : data,
             });
             res.send(data);
         }).catch(err => {
             res.status(200).send({
+                status: "error",
                 message: "Some error occurred while retrieving Modals.",
                 data: "",
             });
@@ -489,12 +442,14 @@ exports.get_category = (req, res) => {
     ])
         .then(data => {
             res.status(200).send({
+                status: "success",
                 message: "success fully get category",
                 data: data,
             });
             res.send(data);
         }).catch(err => {
             res.status(200).send({
+                status: "error",
                 message: "Some error occurred while retrieving Modals.",
                 data: "",
             });
@@ -687,6 +642,12 @@ exports.lecture_single = (req, res) => {
          ])
         .collation({ locale: "en_US", numericOrdering: true })
         .then(Modal => {
+            delete Modal[0]['author'][0]['github'];
+            delete Modal[0]['author'][0]['linkedin'];
+            delete Modal[0]['author'][0]['twitter'];
+            delete Modal[0]['author'][0]['password'];
+            delete Modal[0]['author'][0]['status'];
+            delete Modal[0]['author'][0]['is_deleted'];
         var  com_count = 0;
         $pre_length = "";
         $next_length = "";
@@ -733,7 +694,7 @@ exports.lecture_single = (req, res) => {
             }
         Modal[0]['count'] = Math.round(com_count * 100 / total_lecture);
         delete Modal[0]['lecture'];
-        // delete Modal[0]['complete_courses'];
+        delete Modal[0]['complete_courses'];
         delete Modal[0]['singlelesson'];
             return res.status(200).send({
                 message: "successfully get",
@@ -776,10 +737,19 @@ exports.forget_password_fun = (req, res) => {
                             message: "something wrong.",
                         });
                     } else {
-                        localStorage.setItem('user_otp', Modal.email_html['code']);
-                        return res.status(200).send({
-                            status: "success",
-                            message: "User founded",
+                        Modal.user.findOneAndUpdate(
+                            { email: req.body.email },
+                            { $set: { "otp": Modal.email_html['code'] } },
+                        { new: true }).then(update_otp => {
+                            return res.status(200).send({
+                                status: "success",
+                                message: "User founded",
+                            });
+                        }).catch(err => {
+                            return res.status(200).send({
+                                status: "error",
+                                message: "something wrong",
+                            });
                         });
                     }
                 });
@@ -798,65 +768,54 @@ exports.forget_password_fun = (req, res) => {
 };
 
 exports.check_otp = (req, res) => {
-    myValue = localStorage.getItem('user_otp');
-    if (!req.body.otp) {
+    if (!req.body.otp && !req.body.email) {
         return res.status(200).send({
             status: "error",
             message: "otp not found",
         });
-    } else if (req.body.otp == myValue){
+    }
+    Modal.user.find({ email: req.body.email })
+    .then(value => {
+        if (req.body.otp == value[0].otp) {
+            return res.status(200).send({
+                status: "success",
+                message: "OTP matched."
+            });
+        }else{
+            return res.status(200).send({
+                status: "error",
+                message: "OTP not matched."
+            });
+        }
+    }).catch(err => {
         return res.status(200).send({
-            status: "success",
-            message: "OTP matched."
+            status: "error",
+            message: "Error retrieving Modal with id " + req.params.ModalId
+        });
+    });
+}
+
+exports.password_change = (req, res) => {
+    if (req.body.email && req.body.password) {
+        Modal.user.findOneAndUpdate(
+            { email: req.body.email },
+            { $set: { "password": crypto.createHash('md5').update(req.body.password).digest("hex") } },
+        { new: true }).then(cng_pass => {
+            return res.status(200).send({
+                status: "success",
+                message: "successfully password changed",
+            });
+        }).catch(err => {
+            return res.status(200).send({
+                status: "error",
+                message: "something wrong",
+            });
         });
     }else{
         return res.status(200).send({
             status: "error",
-            message: "OTP not matched."
+            message: "some field missing."
         });
     }
-   
-};
+}
 
-// exports.mail_send = (req, res) => {
-//     var transporter = nodemailer.createTransport({
-//         service: "gmail",
-//         auth: {
-//             user: "jaydip.qsek@gmail.com",
-//             pass: "Jaydip@605"
-//         }
-//         // host: 'smtp.gmail.com',
-//         // port: 465,
-//         // secure: true,
-//         // auth: {
-//         //     type: 'OAuth2',
-//         //     clientId: '338442871337-fh49fjaav2c8112tdtrsg8tnaohpktoc.apps.googleusercontent.com',
-//         //     clientSecret: 'sQEQ8b09R9js9sWwkOwBKbZf'
-//         // }
-//     });
-//     const mailOptions = {
-//         cc: [
-//             'foobar@example.com',
-//             '"Ноде Майлер" <bar@example.com>'
-//         ],
-//         from: 'Fred Foo 👥 <foo@blurdybloop.com>',
-//         to: 'james.patel710@gmail.com',
-//         subject: 'Test Subject',
-//         text: 'This is a test',
-//         html: Modal.email_html['html'],
-//         // auth: {
-//         //     user: 'james.patel710@gmail.com',
-//         //     refreshToken: '1/lYKLXNBJYtc-EO6VdhvWm6UbTdl6zeeIk4MZ2yPCUJM',
-//         //     accessToken: 'ya29.Il-UByvAvu3HXvht-mjcPq1eMs8ZUmDU7UabO-1Mq6eFo4KPoEyXtGSrg5R3y9lik148eNfwlnM8pKyccTxobSwoLHmDpgDCEETdcc5LApGKElzsrk1YnbBrVUbDJn2PwQ'
-//         // }
-//     }
-
-//     transporter.sendMail(mailOptions, function (err, info) {
-//         if (err) {
-//             console.log(err)
-//         } else {
-//             // localStorage.setItem(JSON.stringify('user_otp'), JSON.stringify(Modal.email_html['otp']));
-//             console.log(info);
-//         }
-//     });
-// };

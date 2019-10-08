@@ -27,6 +27,7 @@ const user = new mongoose.Schema( {
     remember_token: String,
     date_created: Date,
     date_updated: Date,
+    otp: Number,
 });
 user.set('collection', 'user');
 module.exports.user = mongoose.model('user', user);

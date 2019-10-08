@@ -17,6 +17,7 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage });
 
 mongoose.Promise = global.Promise;
+mongoose.set('findOneAndUpdate', true);
 mongoose.connect(dbConfig.url, {
     useNewUrlParser: true
 }).then(() => {

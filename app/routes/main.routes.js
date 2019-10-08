@@ -3,19 +3,7 @@ module.exports = (app) => {
     const admin_controller = require('../controllers/admin.controller.js');
     // Create a new Note
     app.post('/create_user', controller.create);
-
-    // Retrieve all controller
-    app.get('/table/:db', controller.findAll);
-
-    // Retrieve a single Note with noteId
-    app.get('/controller/:db/:noteId', controller.findOne);
-
-    // Update a Note with noteId
-    app.put('/controller/:db/:noteId', controller.update);
-    
-    // Delete a Note with noteId
-    app.delete('/controller/:noteId', controller.delete);
-    
+ 
     
     //login
     app.post('/login', controller.login);
@@ -31,6 +19,7 @@ module.exports = (app) => {
     // app.post('/mail_send', controller.mail_send);
     app.post('/forget_password_fun', controller.forget_password_fun);
     app.post('/check_otp', controller.check_otp);
+    app.post('/password_change', controller.password_change);
 
 
     // admin site
