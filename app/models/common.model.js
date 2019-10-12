@@ -77,6 +77,17 @@ const download_data  = new mongoose.Schema({
 download_data .set('collection', 'download_data');
 module.exports.download_data  = mongoose.model('download_data', download_data );
 
+const contact_us  = new mongoose.Schema({
+    username: String,
+    email: String,
+    subject: String,
+    message: String,
+}, {
+        timestamps: true
+    });
+contact_us .set('collection', 'contact_us');
+module.exports.contact_us  = mongoose.model('contact_us', contact_us );
+
 
 
 const lecture  = new mongoose.Schema({

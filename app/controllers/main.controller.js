@@ -8,8 +8,9 @@ var localStorage = require('localStorage')
 // Create and Save a new Modal
 exports.create = (req, res) => {
     if (req.body.password != req.body.re_password){
-        return res.status(400).send({
-            message:"re_password wrong."
+        return res.status(200).send({
+            status:'success',
+            message:"re password wrong try again."
         });
     }
     if (req.body.password && req.body.username && req.body.email){
@@ -30,13 +31,13 @@ exports.create = (req, res) => {
                     .then(data => {
                         res.status(200).send({
                             status: 'success',
-                            message: "successfully registed.",
+                            message: "successfully user registed.",
                             // data:data
                         });
                     }).catch(err => {
                         res.status(200).send({
                             status: 'error',
-                            message: "something wrong."
+                            message: "something wrong please try again."
                         });
                     });
                 }else{
@@ -53,7 +54,7 @@ exports.create = (req, res) => {
             });
     }else{
         return res.status(200).send({
-            message: "all filed is required"
+            message: "all filed is required."
         });
     }
     return;
@@ -61,16 +62,14 @@ exports.create = (req, res) => {
 
 // Find a single Modal with a ModalId
 exports.sociallogin = (req, res) => {
-    console.log(req.body.email);
     if (!req.body.email){
         return res.status(200).send({
             status: "error",
-            message: "Email not found",
+            message: "Email not found.",
         });
     }
     Modal.user.find({ email: req.body.email })
         .then(value => {
-            console.log(value.length);
             if (value.length == 0) {
                 const insert_user = new Modal.user({
                     username: req.body.username,
@@ -88,11 +87,14 @@ exports.sociallogin = (req, res) => {
                         delete data[0]['type'];
                         delete data[0]['status'];
                         res.status(200).send({
-                            data: data[0]
+                            status: "success",
+                            data: value[0],
+                            message: "successfully user login.",
                         });
                     }).catch(err => {
                         res.status(200).send({
-                            message: "Some error occurred while creating the Modal."
+                            status: "error",
+                            message: "something wrong please try again."
                         });
                     });
             }else{
@@ -103,13 +105,13 @@ exports.sociallogin = (req, res) => {
                 return res.status(200).send({
                     status: "success",
                     data: value[0],
-                    message: "Modal not found with id " + req.params.ModalId
+                    message: "successfully user login.",
                 });
             }
         }).catch(err => {
             return res.status(200).send({
                 status: "error",
-                message: "Error retrieving Modal with id " + req.params.ModalId
+                message: "something wrong please after sometimes.",
             });
         });
 };
@@ -117,8 +119,9 @@ exports.sociallogin = (req, res) => {
 //login
 exports.login = (req, res) => {
     if (!req.body.email || !req.body.password ){
-        return res.status(404).send({
-            message: "please enter email and password"
+        return res.status(200).send({
+            status: "error",
+            message: "email and password not found.",
         });
     }
     Modal.user.find({
@@ -145,7 +148,7 @@ exports.login = (req, res) => {
             return res.status(200).send({
                 data: Modal[0],
                 status: 'success',
-                msg: 'successfully login.'
+                message: 'successfully login.'
             });
         }).catch(err => {
             return res.status(200).send({
@@ -207,13 +210,13 @@ exports.course_detail = (req, res) => {
     .then(Modal => {
         return res.status(200).send({
             status: "success",
-            message: "successfully get",
+            message: "successfully get course.",
             data: Modal,
         }); 
     }).catch(err => {
         return res.status(200).send({
             status: "error",
-            message: "something wrong get course data.",
+            message: "something wrong can'\t get course data.",
             data: Modal,
         }); 
     });
@@ -242,10 +245,16 @@ exports.category = (req, res) => {
         }
     ])
         .then(Modal => {
+            return res.status(200).send({
+                status: "success",
+                data: Modal,
+                message: "successfully get category.",
+            });
             res.send(Modal);
         }).catch(err => {
-            return res.status(500).send({
-                message: "Error retrieving Modal with id " + req.params.ModalId
+            return res.status(200).send({
+                status: "error",
+                message: "something wrong can'\t get category.",
             });
         });
 };
@@ -365,25 +374,25 @@ exports.complete_courses = (req, res) => {
                     .then(data => {
                         res.status(200).send({
                             status: "success",
-                            message: "Successfully completed.."
+                            message: "Successfully completed."
                         });
                     }).catch(err => {
                         res.status(200).send({
                             status: "error",
-                            message: "something wrong please try agian"
+                            message: "something wrong please try agian."
                         });
                     });
             }else{
                 res.status(200).send({
                     status: "success",
-                    message: "Successfully completed.."
+                    message: "Successfully completed."
                 });
             }
         });
     } else {
         return res.status(200).send({
             status: "error",
-            message: "something wrong please try again"
+            message: "something wrong please try again."
         });
     }
 };
@@ -443,7 +452,7 @@ exports.get_category = (req, res) => {
         .then(data => {
             res.status(200).send({
                 status: "success",
-                message: "success fully get category",
+                message: "success fully get category.",
                 data: data,
             });
             res.send(data);
@@ -529,12 +538,14 @@ exports.complete_course_detail = (req, res) => {
     ])
         .then(data => {
             return res.status(200).send({
-                message: "successfully get course",
+                status: "success",
+                message: "successfully get course.",
                 data: data
             });
         }).catch(err => {
             return res.status(500).send({
-                message: "Error retrieving Modal with id " + err
+                status: "error",
+                message: "something wrong please try again."
             });
         });
 };
@@ -697,12 +708,14 @@ exports.lecture_single = (req, res) => {
         delete Modal[0]['complete_courses'];
         delete Modal[0]['singlelesson'];
             return res.status(200).send({
+                status:'success',
                 message: "successfully get",
                 data: Modal
             });
         }).catch(err => {
-            return res.status(500).send({
-                message: "Error retrieving Modal with id " + err
+            return res.status(200).send({
+                status: 'error',
+                message: "something wrong please try again.",
             });
         });
 };
@@ -743,12 +756,12 @@ exports.forget_password_fun = (req, res) => {
                         { new: true }).then(update_otp => {
                             return res.status(200).send({
                                 status: "success",
-                                message: "User founded",
+                                message: "your email address founded.",
                             });
                         }).catch(err => {
                             return res.status(200).send({
                                 status: "error",
-                                message: "something wrong",
+                                message: "something wrong.",
                             });
                         });
                     }
@@ -756,13 +769,13 @@ exports.forget_password_fun = (req, res) => {
             } else {
                 return res.status(200).send({
                     status: "error",
-                    message: "User not found",
+                    message: "User not found.",
                 });
             }
         }).catch(err => {
             return res.status(200).send({
                 status: "error",
-                message: "Error retrieving Modal with id " + req.params.ModalId
+                message: "something wrong please try after some time."
             });
         });
 };
@@ -771,7 +784,7 @@ exports.check_otp = (req, res) => {
     if (!req.body.otp && !req.body.email) {
         return res.status(200).send({
             status: "error",
-            message: "otp not found",
+            message: "otp not found.",
         });
     }
     Modal.user.find({ email: req.body.email })
@@ -790,7 +803,7 @@ exports.check_otp = (req, res) => {
     }).catch(err => {
         return res.status(200).send({
             status: "error",
-            message: "Error retrieving Modal with id " + req.params.ModalId
+            message: "something wrong please try after some time."
         });
     });
 }
@@ -803,12 +816,12 @@ exports.password_change = (req, res) => {
         { new: true }).then(cng_pass => {
             return res.status(200).send({
                 status: "success",
-                message: "successfully password changed",
+                message: "successfully password changed.",
             });
         }).catch(err => {
             return res.status(200).send({
                 status: "error",
-                message: "something wrong",
+                message: "something wrong.",
             });
         });
     }else{
@@ -819,3 +832,33 @@ exports.password_change = (req, res) => {
     }
 }
 
+
+// Create complete course
+exports.contact_us = (req, res) => {
+    if (req.body.email  && req.body.username && req.body.subject && req.body.message) {
+        const contact_us = new Modal.contact_us({
+            username: req.body.username,
+            email: req.body.email,
+            subject: req.body.subject,
+            message: req.body.message,
+        });
+        // Save Modal in the database
+        contact_us.save()
+            .then(data => {
+                res.status(200).send({
+                    status: "success",
+                    message: "Successfully send message."
+                });
+            }).catch(err => {
+                res.status(200).send({
+                    status: "error",
+                    message: "something wrong please try agian."
+                });
+            });
+    } else {
+        return res.status(200).send({
+            status: "error",
+            message: "something wrong please try again."
+        });
+    }
+};

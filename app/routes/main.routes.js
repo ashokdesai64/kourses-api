@@ -20,6 +20,7 @@ module.exports = (app) => {
     app.post('/forget_password_fun', controller.forget_password_fun);
     app.post('/check_otp', controller.check_otp);
     app.post('/password_change', controller.password_change);
+    app.post('/contact_user', controller.contact_us);
 
 
     // admin site
