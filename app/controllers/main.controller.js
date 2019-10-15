@@ -3,7 +3,6 @@ var crypto = require('crypto');
 var ts_hms = new Date();
 var ObjectId = require('mongodb').ObjectID;
 var nodemailer = require('nodemailer');
-var localStorage = require('localStorage')
 
 // Create and Save a new Modal
 exports.create = (req, res) => {
@@ -132,7 +131,7 @@ exports.login = (req, res) => {
             if (Modal.length < 1) {
                 return res.status(200).send({
                     status: "error",
-                    message: "user not fount."
+                    message: "email and password incorrect."
                 });
             }
             if (Modal.status = 0) {
@@ -831,7 +830,6 @@ exports.password_change = (req, res) => {
         });
     }
 }
-
 
 // Create complete course
 exports.contact_us = (req, res) => {
