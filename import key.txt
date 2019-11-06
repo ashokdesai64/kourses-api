@@ -1,1 +1,0 @@
-C:\Program Files\MongoDB\Server\4.0\bin>mongoimport --db test --collection lecture --file C:\Users\jaimi\Downloads\lecture.json --jsonArray
